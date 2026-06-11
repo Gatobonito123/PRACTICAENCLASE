@@ -16,19 +16,23 @@ import com.example.practicaenclase.Models.Alumno
 import com.example.practicaenclase.Models.Materia
 import com.example.practicaenclase.Services.SupabaseManager
 import com.example.practicaenclase.Utils.SupabaseErrorHandler
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var spinnerSemestre: Spinner
     private lateinit var spinnerMateria: Spinner
     private lateinit var lvAlumnos: ListView
+    private lateinit var progressCarga: CircularProgressIndicator
 
     private var materias: List<Materia> = emptyList()
-    private var semestreSeleccionado = false
+    private var ignorarSeleccionMateria = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,23 +47,19 @@ class MainActivity : AppCompatActivity() {
         spinnerSemestre = findViewById(R.id.spinnerSemestre)
         spinnerMateria = findViewById(R.id.spinnerMateria)
         lvAlumnos = findViewById(R.id.lvAlumnos)
+        progressCarga = findViewById(R.id.progressCarga)
 
         configurarSpinnerSemestre()
         configurarSpinnerMateria()
         configurarSpinnerMateriaInicial()
+
+        spinnerSemestre.post {
+            cargarMaterias(spinnerSemestre.selectedItemPosition + 1)
+        }
     }
 
     private fun configurarSpinnerMateriaInicial() {
-        val placeholder = ArrayList<String>()
-        placeholder.add(getString(R.string.seleccione_materia))
-        val adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            placeholder
-        ).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        spinnerMateria.adapter = adapter
+        actualizarSpinnerMaterias(listOf(getString(R.string.seleccione_materia)))
     }
 
     private fun configurarSpinnerSemestre() {
@@ -74,10 +74,6 @@ class MainActivity : AppCompatActivity() {
 
         spinnerSemestre.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (!semestreSeleccionado) {
-                    semestreSeleccionado = true
-                    return
-                }
                 cargarMaterias(position + 1)
             }
 
@@ -88,6 +84,7 @@ class MainActivity : AppCompatActivity() {
     private fun configurarSpinnerMateria() {
         spinnerMateria.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (ignorarSeleccionMateria) return
                 if (position == 0 || materias.isEmpty()) {
                     lvAlumnos.adapter = null
                     return
@@ -99,55 +96,77 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun actualizarSpinnerMaterias(nombres: List<String>) {
+        ignorarSeleccionMateria = true
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            ArrayList(nombres)
+        ).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        spinnerMateria.adapter = adapter
+        ignorarSeleccionMateria = false
+    }
+
+    private fun mostrarCarga(visible: Boolean) {
+        progressCarga.visibility = if (visible) View.VISIBLE else View.GONE
+    }
+
     private fun cargarMaterias(nivel: Int) {
         lifecycleScope.launch {
-            val nombresMaterias = ArrayList<String>()
-            nombresMaterias.add(getString(R.string.seleccione_materia))
+            mostrarCarga(true)
+            val nombresMaterias = mutableListOf(getString(R.string.seleccione_materia))
 
             try {
-                materias = SupabaseManager.client
-                    .from("materias")
-                    .select {
-                        filter {
-                            eq("nivel", nivel)
+                materias = withContext(Dispatchers.IO) {
+                    SupabaseManager.client
+                        .from("materias")
+                        .select {
+                            filter {
+                                eq("nivel", nivel)
+                            }
+                            order("nombre", Order.ASCENDING)
                         }
-                        order("nombre", Order.ASCENDING)
-                    }
-                    .decodeList<Materia>()
-
+                        .decodeList<Materia>()
+                }
                 nombresMaterias.addAll(materias.map { it.nombre })
             } catch (e: RestException) {
                 SupabaseErrorHandler.show(this@MainActivity, e)
                 materias = emptyList()
+            } catch (e: Exception) {
+                SupabaseErrorHandler.show(this@MainActivity, e)
+                materias = emptyList()
+            } finally {
+                mostrarCarga(false)
             }
 
-            val adapter = ArrayAdapter(
-                this@MainActivity,
-                android.R.layout.simple_spinner_item,
-                nombresMaterias
-            ).also {
-                it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
-            spinnerMateria.adapter = adapter
+            actualizarSpinnerMaterias(nombresMaterias)
             lvAlumnos.adapter = null
         }
     }
 
     private fun cargarAlumnos() {
         lifecycleScope.launch {
+            mostrarCarga(true)
             val listaAlumnos = ArrayList<Alumno>()
 
             try {
-                val alumnos = SupabaseManager.client
-                    .from("alumnos")
-                    .select {
-                        order("nombres", Order.ASCENDING)
-                    }
-                    .decodeList<Alumno>()
-
+                val alumnos = withContext(Dispatchers.IO) {
+                    SupabaseManager.client
+                        .from("alumnos")
+                        .select {
+                            order("nombres", Order.ASCENDING)
+                        }
+                        .decodeList<Alumno>()
+                }
                 listaAlumnos.addAll(alumnos)
             } catch (e: RestException) {
                 SupabaseErrorHandler.show(this@MainActivity, e)
+            } catch (e: Exception) {
+                SupabaseErrorHandler.show(this@MainActivity, e)
+            } finally {
+                mostrarCarga(false)
             }
 
             lvAlumnos.adapter = AlumnoAdapter(this@MainActivity, listaAlumnos)
