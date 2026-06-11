@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Alumnos Supabase</string>
+    <string name="logo_institucional">Logotipo institucional</string>
+    <string name="label_semestre">Semestre</string>
+    <string name="label_materia">Materia</string>
+    <string name="seleccione_materia">Seleccione una materia</string>
+    <string name="foto_alumno">Fotografía del alumno</string>
+    <string name="icono_correo">Correo electrónico</string>
+    <string name="icono_telefono">Teléfono</string>
+
+    <string-array name="semestres">
+        <item>Primero</item>
+        <item>Segundo</item>
+        <item>Tercero</item>
+        <item>Cuarto</item>
+        <item>Quinto</item>
+        <item>Sexto</item>
+        <item>Séptimo</item>
+    </string-array>
+</resources>

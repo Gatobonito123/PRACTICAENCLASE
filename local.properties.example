@@ -1,0 +1,6 @@
+## Copia este archivo como local.properties y completa tus credenciales de Supabase.
+## local.properties NO debe subirse al repositorio (está en .gitignore).
+
+sdk.dir=C\:\\Users\\TU_USUARIO\\AppData\\Local\\Android\\Sdk
+SUPABASE_URL=https://xxxxxxxx.supabase.co
+SUPABASE_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
