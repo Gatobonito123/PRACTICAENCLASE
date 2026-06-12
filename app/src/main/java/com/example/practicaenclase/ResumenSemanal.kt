@@ -28,8 +28,8 @@ import android.net.Uri
 class ResumenSemanal : AppCompatActivity() {
 
     private lateinit var lvNoticiasUteq: ListView
-    private val apiUrl = "https://apiws.uteq.edu.ec/h6RPoSoRaah0Y4Bah28eew/functions/information/entity/3"
-    private val token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJfeDF1c2VyZGV2IiwiaWF0IjoxNzgxMjA2NDgwLCJleHAiOjE3ODEyOTI4ODB9.ut9t7jNdM2ubQhp0EZCCytNYR2IQQPmlyoO51V2laGE"
+    private val apiUrl = "" // TODO: Agregar URL de la API
+    private val token = "" // TODO: Agregar Token de autenticación
     
     private val json = Json { 
         ignoreUnknownKeys = true 
